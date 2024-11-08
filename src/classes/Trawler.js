@@ -39,6 +39,8 @@ class NTTrawler {
     }
     this.options = mergeDeepRight(this.defaults, options )
     this.cache = null
+    if(this.relays.length < this.options.relaysPerBatch)
+      this.options.relaysPerBatch = this.relays.length
   }
 
   async run(){
@@ -79,7 +81,7 @@ class NTTrawler {
       path: this.options.cache.path,
       compression: true
     });
-    if(this?.options && this.options instanceof Function)
+    if(this?.options && this.options?.after_cacheOpen instanceof Function)
       this?.options?.after_cacheOpen(this.cache)
   }
 
@@ -114,7 +116,6 @@ class NTTrawler {
           const passedValidation = this.options?.validator ? this.options.validator(this, event) : true
           const doUpdateProgress = () => Date.now() - lastProgressUpdate > this.options.progressEvery
           progress.last_timestamp = event.created_at
-          this.updateSince(relay, progress.last_timestamp)
           if(!passedValidation) {
             progress.rejected++
             if(doUpdateProgress()) {
@@ -133,6 +134,7 @@ class NTTrawler {
             this.updateProgress(progress, $job)
           }
         }
+        await this.updateSince(relay, progress.last_timestamp)
         resolve(this.getSince(relay))
       } catch (error) {
         console.error('Error', error);
@@ -146,7 +148,7 @@ class NTTrawler {
     //console.log('chunk_relays', this.relays.length)
     if (this.relays.length === 0) 
         return [];
-    if(this.relays.length < this.options.relaysPerBatch)
+    if(this.relays.length <= this.options.relaysPerBatch)
       return this.relays;
     const chunks = [];
     for(let i = 0; i < this.relays.length; i += this.options.relaysPerBatch){

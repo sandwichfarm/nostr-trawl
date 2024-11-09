@@ -102,6 +102,7 @@ class NTTrawler {
         }
 
         let lastProgressUpdate = 0
+        let highestTimestamp = parseInt(`${since}`)
 
         //console.log(`trawling ${relay} starting from ${timeAgo.format(new Date(since*1000))}`)
     
@@ -127,6 +128,9 @@ class NTTrawler {
           }
           
           await this.options.parser(this, event, $job)
+          if(event.created_at > highestTimestamp) {
+            highestTimestamp = event.created_at
+          }
           progress.found++
           if(doUpdateProgress()){
             lastProgressUpdate = Date.now()
@@ -134,7 +138,7 @@ class NTTrawler {
             this.updateProgress(progress, $job)
           }
         }
-        await this.updateSince(relay, progress.last_timestamp)
+        await this.updateSince(relay, highestTimestamp)
         resolve(this.getSince(relay))
       } catch (error) {
         console.error('Error', error);
